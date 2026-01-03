@@ -14,15 +14,21 @@ class MeusTreinosScreen extends StatelessWidget {
 
         return Scaffold(
           appBar: AppBar(
-            toolbarHeight: 80, // Aumenta um pouco a altura
+            toolbarHeight: 80,
             centerTitle: true,
             title: Column(
               children: [
-                const Text("MEUS TREINOS", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+                const Text(
+                  "MEUS TREINOS",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                ),
                 const SizedBox(height: 4),
-                // Troféu e Rank Logo Abaixo do Título
+
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.black26,
                     borderRadius: BorderRadius.circular(12),
@@ -30,15 +36,23 @@ class MeusTreinosScreen extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.emoji_events, size: 14, color: Theme.of(context).colorScheme.primary),
+                      Icon(
+                        Icons.emoji_events,
+                        size: 14,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                       const SizedBox(width: 6),
                       Text(
                         service.rankAtual.toUpperCase(),
-                        style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ],
                   ),
-                )
+                ),
               ],
             ),
           ),
@@ -47,7 +61,11 @@ class MeusTreinosScreen extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.fitness_center, size: 80, color: Colors.grey[800]),
+                      Icon(
+                        Icons.fitness_center,
+                        size: 80,
+                        color: Colors.grey[800],
+                      ),
                       const SizedBox(height: 20),
                       const Text(
                         "Nenhum treino montado ainda.",
@@ -65,38 +83,64 @@ class MeusTreinosScreen extends StatelessWidget {
                       margin: const EdgeInsets.only(bottom: 16),
                       color: Theme.of(context).colorScheme.surface,
                       elevation: 4,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
                       child: ListTile(
                         contentPadding: const EdgeInsets.all(16),
                         title: Text(
                           treino.nome,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
                         ),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const SizedBox(height: 8),
-                            Text("${treino.exercicios.length} exercícios cadastrados"),
+                            Text(
+                              "${treino.exercicios.length} exercícios cadastrados",
+                            ),
                             const SizedBox(height: 4),
-                            // Mostra os dias da semana resumidos
+
                             Wrap(
                               spacing: 4,
                               children: treino.diasDaSemana.map((dia) {
-                                final nomesDias = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+                                final nomesDias = [
+                                  'Seg',
+                                  'Ter',
+                                  'Qua',
+                                  'Qui',
+                                  'Sex',
+                                  'Sáb',
+                                  'Dom',
+                                ];
                                 return Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
                                   decoration: BoxDecoration(
                                     // ignore: deprecated_member_use
-                                    color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(4)
+                                    color: Theme.of(
+                                      context,
+                                    // ignore: deprecated_member_use
+                                    ).colorScheme.primary.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
                                     nomesDias[dia - 1],
-                                    style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.primary),
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                    ),
                                   ),
                                 );
                               }).toList(),
-                            )
+                            ),
                           ],
                         ),
                         trailing: PopupMenuButton<String>(
@@ -104,16 +148,19 @@ class MeusTreinosScreen extends StatelessWidget {
                             if (value == 'editar') {
                               Navigator.of(context).push(
                                 MaterialPageRoute(
-                                  builder: (ctx) => CadastroTreinoScreen(treinoParaEditar: treino),
+                                  builder: (ctx) => CadastroTreinoScreen(
+                                    treinoParaEditar: treino,
+                                  ),
                                 ),
                               );
                             } else if (value == 'excluir') {
-                              // Confirmação antes de excluir
                               showDialog(
                                 context: context,
                                 builder: (ctx) => AlertDialog(
                                   title: const Text("Excluir Treino?"),
-                                  content: Text("Deseja apagar ${treino.nome} permanentemente?"),
+                                  content: Text(
+                                    "Deseja apagar ${treino.nome} permanentemente?",
+                                  ),
                                   actions: [
                                     TextButton(
                                       onPressed: () => Navigator.pop(ctx),
@@ -121,10 +168,13 @@ class MeusTreinosScreen extends StatelessWidget {
                                     ),
                                     TextButton(
                                       onPressed: () {
-                                        service.removerTreino(treino.id); // Certifique-se que esse método existe no Service
+                                        service.removerTreino(treino.id);
                                         Navigator.pop(ctx);
                                       },
-                                      child: const Text("EXCLUIR", style: TextStyle(color: Colors.red)),
+                                      child: const Text(
+                                        "EXCLUIR",
+                                        style: TextStyle(color: Colors.red),
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -163,7 +213,9 @@ class MeusTreinosScreen extends StatelessWidget {
           floatingActionButton: FloatingActionButton.extended(
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (ctx) => const CadastroTreinoScreen()),
+                MaterialPageRoute(
+                  builder: (ctx) => const CadastroTreinoScreen(),
+                ),
               );
             },
             backgroundColor: Theme.of(context).colorScheme.primary,

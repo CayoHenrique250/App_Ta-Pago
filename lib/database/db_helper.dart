@@ -21,14 +21,13 @@ class DBHelper {
 
     return await openDatabase(
       path,
-      version: 2, // <--- MUDAMOS A VERSÃO DE 1 PARA 2
+      version: 5,
       onCreate: _onCreate,
-      onUpgrade: _onUpgrade, // <--- ADICIONAMOS O MÉTODO DE UPGRADE
+      onUpgrade: _onUpgrade,
     );
   }
 
   Future<void> _onCreate(Database db, int version) async {
-    // Tabela Usuário (Já com a nova coluna)
     await db.execute('''
       CREATE TABLE usuario(
         id INTEGER PRIMARY KEY,
@@ -39,11 +38,11 @@ class DBHelper {
         foto_path TEXT
       )
     ''');
-    
-    // Insere usuário padrão
-    await db.execute("INSERT INTO usuario(id, nome, idade, altura, peso, foto_path) VALUES (1, 'Monstro', 25, 1.75, 70.0, NULL)");
 
-    // Tabela Treinos
+    await db.execute(
+      "INSERT INTO usuario(id, nome, idade, altura, peso, foto_path) VALUES (1, 'Monstro', 25, 1.75, 70.0, NULL)",
+    );
+
     await db.execute('''
       CREATE TABLE treinos(
         id TEXT PRIMARY KEY,
@@ -51,7 +50,6 @@ class DBHelper {
       )
     ''');
 
-    // Tabela Treino Dias
     await db.execute('''
       CREATE TABLE treino_dias(
         treino_id TEXT,
@@ -60,7 +58,6 @@ class DBHelper {
       )
     ''');
 
-    // Tabela Exercícios
     await db.execute('''
       CREATE TABLE exercicios(
         id TEXT PRIMARY KEY,
@@ -74,7 +71,6 @@ class DBHelper {
       )
     ''');
 
-    // Tabela Histórico
     await db.execute('''
       CREATE TABLE historico(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -83,19 +79,75 @@ class DBHelper {
       )
     ''');
 
-    // Tabela Checkpoints Diários
     await db.execute('''
       CREATE TABLE checkpoints_diarios(
         exercicio_id TEXT PRIMARY KEY
       )
     ''');
+
+    await db.execute('''
+      CREATE TABLE cargas_temporarias(
+        exercicio_id TEXT PRIMARY KEY,
+        carga TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE historico_peso(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        data TEXT,
+        peso REAL,
+        altura REAL,
+        imc REAL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE historico_cargas(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        exercicio_id TEXT,
+        exercicio_nome TEXT,
+        data TEXT,
+        carga REAL,
+        treino_id TEXT
+      )
+    ''');
   }
 
-  // Lógica para atualizar quem tem a versão antiga (versão 1) para a nova (versão 2)
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
-      // Adiciona a coluna foto_path na tabela usuario se ela não existir
       await db.execute("ALTER TABLE usuario ADD COLUMN foto_path TEXT");
+    }
+    if (oldVersion < 3) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS historico_peso(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          data TEXT,
+          peso REAL,
+          altura REAL,
+          imc REAL
+        )
+      ''');
+    }
+    if (oldVersion < 4) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS historico_cargas(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          exercicio_id TEXT,
+          exercicio_nome TEXT,
+          data TEXT,
+          carga REAL,
+          treino_id TEXT
+        )
+      ''');
+    }
+    if (oldVersion < 5) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS cargas_temporarias(
+          exercicio_id TEXT PRIMARY KEY,
+          carga TEXT
+        )
+      ''');
     }
   }
 }

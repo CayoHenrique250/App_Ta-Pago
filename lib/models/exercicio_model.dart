@@ -4,7 +4,7 @@ class ExercicioModelo {
   String series;
   String repeticoes;
   String peso;
-  String? imageUrl; // Campo para URL da imagem/gif
+  String? imageUrl;
 
   ExercicioModelo({
     required this.id,

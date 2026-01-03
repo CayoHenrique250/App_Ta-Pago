@@ -17,31 +17,28 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
-    
+
     _controller = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
     );
 
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: const Interval(0.0, 0.6, curve: Curves.easeIn),
-    ));
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.6, curve: Curves.easeIn),
+      ),
+    );
 
-    _scaleAnimation = Tween<double>(
-      begin: 0.5,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: const Interval(0.0, 0.6, curve: Curves.elasticOut),
-    ));
+    _scaleAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.6, curve: Curves.elasticOut),
+      ),
+    );
 
     _controller.forward();
 
-    // Navega para a tela principal após 2.5 segundos
     Future.delayed(const Duration(milliseconds: 2500), () {
       if (mounted) {
         Navigator.of(context).pushReplacementNamed('/main');
@@ -63,10 +60,7 @@ class _SplashScreenState extends State<SplashScreen>
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF121225),
-              Color(0xFF1E1E38),
-            ],
+            colors: [Color(0xFF121225), Color(0xFF1E1E38)],
           ),
         ),
         child: Center(
@@ -80,7 +74,6 @@ class _SplashScreenState extends State<SplashScreen>
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Ícone da aplicação
                       Container(
                         width: 150,
                         height: 150,
@@ -88,7 +81,9 @@ class _SplashScreenState extends State<SplashScreen>
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFFFFC107).withValues(alpha: 0.5),
+                              color: const Color(
+                                0xFFFFC107,
+                              ).withValues(alpha: 0.5),
                               blurRadius: 30,
                               spreadRadius: 10,
                             ),
@@ -119,7 +114,7 @@ class _SplashScreenState extends State<SplashScreen>
                         ),
                       ),
                       const SizedBox(height: 40),
-                      // Título da aplicação
+
                       const Text(
                         'TÁ PAGO!',
                         style: TextStyle(
@@ -130,7 +125,7 @@ class _SplashScreenState extends State<SplashScreen>
                         ),
                       ),
                       const SizedBox(height: 15),
-                      // Subtítulo
+
                       Text(
                         'Sua jornada começa agora',
                         style: TextStyle(
@@ -151,4 +146,3 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 }
-

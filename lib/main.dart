@@ -5,6 +5,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'screens/home_screen.dart';
 import 'screens/meus_treinos_screen.dart';
 import 'screens/historico_screen.dart';
+import 'screens/metricas_screen.dart';
 import 'screens/splash_screen.dart';
 import 'services/treino_service.dart';
 
@@ -14,9 +15,7 @@ void main() async {
 
   runApp(
     MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (context) => TreinoService()),
-      ],
+      providers: [ChangeNotifierProvider(create: (context) => TreinoService())],
       child: const MeuApp(),
     ),
   );
@@ -36,15 +35,15 @@ class MeuApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [Locale('pt', 'BR')],
-      
+
       theme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF121225),
-        
+
         colorScheme: const ColorScheme.dark(
           primary: Color(0xFFFFC107),
           secondary: Color(0xFFFF5722),
-          surface: Color(0xFF1E1E38), // Usaremos essa cor para os cards
+          surface: Color(0xFF1E1E38),
           onPrimary: Colors.black,
           onSurface: Colors.white,
         ),
@@ -59,9 +58,9 @@ class MeuApp extends StatelessWidget {
             color: Colors.white,
           ),
           headlineSmall: TextStyle(
-             fontSize: 22,
-             fontWeight: FontWeight.bold,
-             color: Colors.white
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
           ),
           titleLarge: TextStyle(
             fontSize: 20,
@@ -71,15 +70,18 @@ class MeuApp extends StatelessWidget {
           bodyLarge: TextStyle(fontSize: 16, height: 1.5),
         ),
 
-        // REMOVIDO: cardTheme (causava o erro, vamos usar style direto nos widgets)
-
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFFFFC107),
             foregroundColor: Colors.black,
-            textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            textStyle: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30),
+            ),
             elevation: 10,
           ),
         ),
@@ -91,13 +93,13 @@ class MeuApp extends StatelessWidget {
           titleTextStyle: TextStyle(
             fontWeight: FontWeight.w900,
             fontSize: 24,
-            color: Color(0xFFFFC107)
-          )
+            color: Color(0xFFFFC107),
+          ),
         ),
-        
+
         useMaterial3: true,
       ),
-      
+
       initialRoute: '/',
       routes: {
         '/': (context) => const SplashScreen(),
@@ -121,6 +123,7 @@ class _MainScreenState extends State<MainScreen> {
     const HomeScreen(),
     const MeusTreinosScreen(),
     const HistoricoScreen(),
+    const MetricasScreen(),
   ];
 
   @override
@@ -134,10 +137,21 @@ class _MainScreenState extends State<MainScreen> {
         selectedItemColor: const Color(0xFFFFC107),
         unselectedItemColor: Colors.grey,
         showUnselectedLabels: false,
+        type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.fitness_center), label: 'Treinos'),
-          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'Histórico'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.fitness_center),
+            label: 'Treinos',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.history),
+            label: 'Histórico',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.analytics),
+            label: 'Métricas',
+          ),
         ],
       ),
     );

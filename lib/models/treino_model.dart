@@ -2,9 +2,9 @@ import 'exercicio_model.dart';
 
 class TreinoModelo {
   String id;
-  String nome; // Ex: "Treino A - Peito"
+  String nome;
   List<ExercicioModelo> exercicios;
-  List<int> diasDaSemana; // 1 = Segunda, 7 = Domingo
+  List<int> diasDaSemana;
 
   TreinoModelo({
     required this.id,

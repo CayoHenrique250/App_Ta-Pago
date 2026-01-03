@@ -23,7 +23,6 @@ class _ExecucaoTreinoScreenState extends State<ExecucaoTreinoScreen> {
   @override
   void initState() {
     super.initState();
-    // Inicializa cargas e checkboxes
     for (var ex in widget.treino.exercicios) {
       cargasNovas[ex.id] = ex.peso;
       exerciciosFeitos[ex.id] = false;
@@ -34,26 +33,37 @@ class _ExecucaoTreinoScreenState extends State<ExecucaoTreinoScreen> {
   void _carregarEstadoSalvo() async {
     final service = Provider.of<TreinoService>(context, listen: false);
     final checks = await service.carregarCheckpointsDoDia();
-    setState(() {
-      for (var exId in checks) {
-        if (exerciciosFeitos.containsKey(exId)) {
-          exerciciosFeitos[exId] = true;
+    final cargasSalvas = await service.carregarCargasTemporarias();
+    if (mounted) {
+      setState(() {
+        for (var exId in checks) {
+          if (exerciciosFeitos.containsKey(exId)) {
+            exerciciosFeitos[exId] = true;
+          }
         }
-      }
-    });
+        for (var exId in cargasSalvas.keys) {
+          if (cargasNovas.containsKey(exId)) {
+            cargasNovas[exId] = cargasSalvas[exId]!;
+          }
+        }
+      });
+    }
   }
 
   Future<void> _tirarFoto(StateSetter setModalState) async {
     final picker = ImagePicker();
-    // Usei camera, mas pode mudar para gallery se preferir
-    final pickedFile = await picker.pickImage(source: ImageSource.camera, maxWidth: 800);
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.camera,
+      maxWidth: 800,
+    );
 
     if (pickedFile != null) {
       final directory = await getApplicationDocumentsDirectory();
       final fileName = path.basename(pickedFile.path);
-      final savedImage = await File(pickedFile.path).copy('${directory.path}/$fileName');
+      final savedImage = await File(
+        pickedFile.path,
+      ).copy('${directory.path}/$fileName');
 
-      // Atualiza tanto o modal quanto a tela principal
       setModalState(() {
         _fotoTreino = savedImage;
       });
@@ -63,7 +73,6 @@ class _ExecucaoTreinoScreenState extends State<ExecucaoTreinoScreen> {
     }
   }
 
-  // Função para dar zoom na imagem do exercício
   void _expandirImagemExercicio(String imagePath) {
     showDialog(
       context: context,
@@ -73,7 +82,6 @@ class _ExecucaoTreinoScreenState extends State<ExecucaoTreinoScreen> {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // InteractiveViewer permite pinça para zoom e arrastar
             InteractiveViewer(
               panEnabled: true,
               minScale: 0.5,
@@ -93,7 +101,7 @@ class _ExecucaoTreinoScreenState extends State<ExecucaoTreinoScreen> {
                   onPressed: () => Navigator.pop(ctx),
                 ),
               ),
-            )
+            ),
           ],
         ),
       ),
@@ -105,7 +113,9 @@ class _ExecucaoTreinoScreenState extends State<ExecucaoTreinoScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: const Color(0xFF1E1E38),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
       builder: (ctx) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setModalState) {
@@ -114,25 +124,42 @@ class _ExecucaoTreinoScreenState extends State<ExecucaoTreinoScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text("Treino Concluído!", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+                  const Text(
+                    "Treino Concluído!",
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
                   const SizedBox(height: 10),
-                  const Text("Registre seu shape!", style: TextStyle(color: Colors.grey)),
+                  const Text(
+                    "Registre seu shape!",
+                    style: TextStyle(color: Colors.grey),
+                  ),
                   const SizedBox(height: 20),
-                  
-                  // PRÉ-VISUALIZAÇÃO DA FOTO PÓS-TREINO
+
                   if (_fotoTreino != null)
                     Column(
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(15),
-                          child: Image.file(_fotoTreino!, height: 300, width: double.infinity, fit: BoxFit.cover),
+                          child: Image.file(
+                            _fotoTreino!,
+                            height: 300,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
                         ),
                         const SizedBox(height: 10),
                         TextButton.icon(
                           onPressed: () => _tirarFoto(setModalState),
                           icon: const Icon(Icons.refresh, color: Colors.white),
-                          label: const Text("Tirar Outra", style: TextStyle(color: Colors.white)),
-                        )
+                          label: const Text(
+                            "Tirar Outra",
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
                       ],
                     )
                   else
@@ -144,21 +171,34 @@ class _ExecucaoTreinoScreenState extends State<ExecucaoTreinoScreen> {
                         decoration: BoxDecoration(
                           color: Colors.black26,
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Theme.of(context).colorScheme.primary, width: 2),
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.primary,
+                            width: 2,
+                          ),
                         ),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: const [
-                            Icon(Icons.camera_alt, size: 60, color: Colors.white),
+                            Icon(
+                              Icons.camera_alt,
+                              size: 60,
+                              color: Colors.white,
+                            ),
                             SizedBox(height: 10),
-                            Text("Toque para FOTO", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+                            Text(
+                              "Toque para FOTO",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ],
                         ),
                       ),
                     ),
-                  
+
                   const SizedBox(height: 30),
-                  
+
                   SizedBox(
                     width: double.infinity,
                     height: 55,
@@ -167,36 +207,46 @@ class _ExecucaoTreinoScreenState extends State<ExecucaoTreinoScreen> {
                         Navigator.pop(ctx);
                         _finalizarRealmente();
                       },
-                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00F260), foregroundColor: Colors.black),
-                      child: const Text("SALVAR TUDO", style: TextStyle(fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF00F260),
+                        foregroundColor: Colors.black,
+                      ),
+                      child: const Text(
+                        "SALVAR TUDO",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ),
-                   const SizedBox(height: 10),
-                   if (_fotoTreino == null)
-                     TextButton(
-                       onPressed: (){
+                  const SizedBox(height: 10),
+                  if (_fotoTreino == null)
+                    TextButton(
+                      onPressed: () {
                         Navigator.pop(ctx);
                         _finalizarRealmente();
-                       }, 
-                       child: const Text("Pular foto e finalizar", style: TextStyle(color: Colors.grey))
-                     )
+                      },
+                      child: const Text(
+                        "Pular foto e finalizar",
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ),
                 ],
               ),
             );
-          }
+          },
         );
       },
     );
   }
 
   void _finalizarRealmente() {
-    Provider.of<TreinoService>(context, listen: false).marcarTreinoComoConcluido(
-      widget.treino,
-      cargasNovas,
-      _fotoTreino?.path, 
-    );
+    Provider.of<TreinoService>(
+      context,
+      listen: false,
+    ).marcarTreinoComoConcluido(widget.treino, cargasNovas, _fotoTreino?.path);
     Navigator.of(context).pop();
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Treino salvo! 💪')));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Treino salvo! 💪')));
   }
 
   @override
@@ -218,9 +268,14 @@ class _ExecucaoTreinoScreenState extends State<ExecucaoTreinoScreen> {
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
                     // ignore: deprecated_member_use
-                    color: isDone ? const Color(0xFF00F260).withOpacity(0.2) : Theme.of(context).colorScheme.surface,
+                    color: isDone
+                        // ignore: deprecated_member_use
+                        ? const Color(0xFF00F260).withOpacity(0.2)
+                        : Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(20),
-                    border: isDone ? Border.all(color: const Color(0xFF00F260), width: 2) : null,
+                    border: isDone
+                        ? Border.all(color: const Color(0xFF00F260), width: 2)
+                        : null,
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
@@ -228,25 +283,39 @@ class _ExecucaoTreinoScreenState extends State<ExecucaoTreinoScreen> {
                       children: [
                         Row(
                           children: [
-                            // IMAGEM DO EXERCÍCIO COM ZOOM
                             GestureDetector(
                               onTap: () {
-                                if (ex.imageUrl != null && ex.imageUrl!.isNotEmpty) {
+                                if (ex.imageUrl != null &&
+                                    ex.imageUrl!.isNotEmpty) {
                                   _expandirImagemExercicio(ex.imageUrl!);
                                 }
                               },
                               child: Container(
-                                width: 80, height: 80,
+                                width: 80,
+                                height: 80,
                                 decoration: BoxDecoration(
                                   color: Colors.black26,
                                   borderRadius: BorderRadius.circular(15),
-                                  image: (ex.imageUrl != null && ex.imageUrl!.isNotEmpty)
-                                    ? DecorationImage(image: FileImage(File(ex.imageUrl!)), fit: BoxFit.cover)
-                                    : null 
+                                  image:
+                                      (ex.imageUrl != null &&
+                                          ex.imageUrl!.isNotEmpty)
+                                      ? DecorationImage(
+                                          image: FileImage(File(ex.imageUrl!)),
+                                          fit: BoxFit.cover,
+                                        )
+                                      : null,
                                 ),
-                                child: (ex.imageUrl == null || ex.imageUrl!.isEmpty)
-                                  ? Icon(Icons.fitness_center, color: Colors.grey[700])
-                                  : const Icon(Icons.zoom_in, color: Colors.white70), // Ícone de lupa
+                                child:
+                                    (ex.imageUrl == null ||
+                                        ex.imageUrl!.isEmpty)
+                                    ? Icon(
+                                        Icons.fitness_center,
+                                        color: Colors.grey[700],
+                                      )
+                                    : const Icon(
+                                        Icons.zoom_in,
+                                        color: Colors.white70,
+                                      ),
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -255,47 +324,92 @@ class _ExecucaoTreinoScreenState extends State<ExecucaoTreinoScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Expanded(child: Text(ex.nome, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18))),
+                                      Expanded(
+                                        child: Text(
+                                          ex.nome,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 18,
+                                          ),
+                                        ),
+                                      ),
                                       Checkbox(
                                         value: isDone,
                                         activeColor: const Color(0xFF00F260),
                                         checkColor: Colors.black,
                                         onChanged: (val) {
-                                          setState(() => exerciciosFeitos[ex.id] = val ?? false);
-                                          Provider.of<TreinoService>(context, listen: false).alternarCheckpoint(ex.id, val ?? false);
+                                          setState(
+                                            () => exerciciosFeitos[ex.id] =
+                                                val ?? false,
+                                          );
+                                          Provider.of<TreinoService>(
+                                            context,
+                                            listen: false,
+                                          ).alternarCheckpoint(
+                                            ex.id,
+                                            val ?? false,
+                                          );
                                         },
                                       ),
                                     ],
                                   ),
-                                  Text("${ex.series}x${ex.repeticoes}", style: const TextStyle(color: Colors.grey)),
+                                  Text(
+                                    "${ex.series}x${ex.repeticoes}",
+                                    style: const TextStyle(color: Colors.grey),
+                                  ),
                                 ],
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 10),
-                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(15)),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black26,
+                            borderRadius: BorderRadius.circular(15),
+                          ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text("Carga (kg):", style: TextStyle(fontWeight: FontWeight.bold)),
+                              const Text(
+                                "Carga (kg):",
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
                               SizedBox(
                                 width: 80,
                                 child: TextFormField(
-                                  initialValue: ex.peso,
+                                  key: ValueKey(
+                                    'carga_${ex.id}_${cargasNovas[ex.id]}',
+                                  ),
+                                  initialValue: cargasNovas[ex.id] ?? ex.peso,
                                   keyboardType: TextInputType.number,
                                   textAlign: TextAlign.center,
-                                  style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold, fontSize: 20),
-                                  onChanged: (v) => cargasNovas[ex.id] = v,
+                                  style: TextStyle(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 20,
+                                  ),
+                                  onChanged: (v) {
+                                    cargasNovas[ex.id] = v;
+                                    Provider.of<TreinoService>(
+                                      context,
+                                      listen: false,
+                                    ).salvarCargaTemporaria(ex.id, v);
+                                  },
                                 ),
                               ),
                             ],
                           ),
-                        )
+                        ),
                       ],
                     ),
                   ),
@@ -313,7 +427,7 @@ class _ExecucaoTreinoScreenState extends State<ExecucaoTreinoScreen> {
                 child: const Text("FINALIZAR TREINO"),
               ),
             ),
-          )
+          ),
         ],
       ),
     );

@@ -1,33 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart';
 import '../database/db_helper.dart';
 import '../models/treino_model.dart';
 import '../models/exercicio_model.dart';
 import '../models/usuario_model.dart';
+import '../models/peso_model.dart';
+import '../models/carga_model.dart';
 
 class TreinoService with ChangeNotifier {
-  // Inicializa com valor padrão para evitar LateInitializationError
-  UsuarioModelo _usuario = UsuarioModelo(nome: 'Atleta', idade: 25, altura: 1.75, peso: 70.0);
+  UsuarioModelo _usuario = UsuarioModelo(
+    nome: 'Atleta',
+    idade: 25,
+    altura: 1.75,
+    peso: 70.0,
+  );
 
   List<TreinoModelo> _listaDeTreinos = [];
   Map<DateTime, String?> _historico = {};
+  List<PesoModelo> _historicoPeso = [];
 
-  // Getters básicos
   UsuarioModelo get usuario => _usuario;
   List<TreinoModelo> get listaDeTreinos => _listaDeTreinos;
   Map<DateTime, String?> get historicoMap => _historico;
-  
-  // Getter: Total de treinos
+  List<PesoModelo> get historicoPeso => _historicoPeso;
+
   int get treinosTotais => _historico.length;
 
-  // --- CORREÇÃO 1: Getter para saber se treinou hoje ---
   bool get treinoDeHojeConcluido {
     final hoje = DateTime.now();
-    // Cria uma data sem horas/minutos para comparar com a chave do map
     final dataLimpa = DateTime(hoje.year, hoje.month, hoje.day);
     return _historico.containsKey(dataLimpa);
   }
-  
-  // Getter: Nome do Rank Atual
+
   String get rankAtual {
     int total = treinosTotais;
     if (total < 5) return "Frango";
@@ -37,7 +41,6 @@ class TreinoService with ChangeNotifier {
     return "Olimpo";
   }
 
-  // --- CORREÇÃO 2: Getter para o Próximo Rank ---
   String get proximoRank {
     int total = treinosTotais;
     if (total < 5) return "Em Construção";
@@ -47,32 +50,28 @@ class TreinoService with ChangeNotifier {
     return "Nível Máximo";
   }
 
-  // --- CORREÇÃO 3: Getter para Barra de Progresso (0.0 a 1.0) ---
   double get progressoRank {
     int total = treinosTotais;
-    
-    // Função auxiliar para calcular porcentagem dentro do nível
+
     double calc(int min, int max) {
       if (total >= max) return 1.0;
       return (total - min) / (max - min);
     }
 
-    if (total < 5) return calc(0, 5);       // De 0 a 5
-    if (total < 15) return calc(5, 15);     // De 5 a 15
-    if (total < 30) return calc(15, 30);    // De 15 a 30
-    if (total < 60) return calc(30, 60);    // De 30 a 60
-    return 1.0; // Olimpo (cheio)
+    if (total < 5) return calc(0, 5);
+    if (total < 15) return calc(5, 15);
+    if (total < 30) return calc(15, 30);
+    if (total < 60) return calc(30, 60);
+    return 1.0;
   }
 
   TreinoService() {
     carregarDados();
   }
 
-  // --- CARREGAMENTO DE DADOS ---
   Future<void> carregarDados() async {
     final db = await DBHelper().database;
 
-    // 1. Carregar Usuário
     final userList = await db.query('usuario');
     if (userList.isNotEmpty) {
       final u = userList.first;
@@ -84,20 +83,32 @@ class TreinoService with ChangeNotifier {
         fotoPath: u['foto_path'] as String?,
       );
     } else {
-      _usuario = UsuarioModelo(nome: 'Atleta', idade: 25, altura: 1.75, peso: 70.0);
+      _usuario = UsuarioModelo(
+        nome: 'Atleta',
+        idade: 25,
+        altura: 1.75,
+        peso: 70.0,
+      );
     }
 
-    // 2. Carregar Treinos
     final treinosData = await db.query('treinos');
     List<TreinoModelo> listaTemporaria = [];
 
     for (var t in treinosData) {
       final treinoId = t['id'] as String;
-      
-      final diasData = await db.query('treino_dias', where: 'treino_id = ?', whereArgs: [treinoId]);
+
+      final diasData = await db.query(
+        'treino_dias',
+        where: 'treino_id = ?',
+        whereArgs: [treinoId],
+      );
       List<int> dias = diasData.map((d) => d['dia'] as int).toList();
 
-      final exerciciosData = await db.query('exercicios', where: 'treino_id = ?', whereArgs: [treinoId]);
+      final exerciciosData = await db.query(
+        'exercicios',
+        where: 'treino_id = ?',
+        whereArgs: [treinoId],
+      );
       List<ExercicioModelo> exercicios = exerciciosData.map((e) {
         return ExercicioModelo(
           id: e['id'] as String,
@@ -109,16 +120,17 @@ class TreinoService with ChangeNotifier {
         );
       }).toList();
 
-      listaTemporaria.add(TreinoModelo(
-        id: treinoId,
-        nome: t['nome'] as String,
-        diasDaSemana: dias,
-        exercicios: exercicios,
-      ));
+      listaTemporaria.add(
+        TreinoModelo(
+          id: treinoId,
+          nome: t['nome'] as String,
+          diasDaSemana: dias,
+          exercicios: exercicios,
+        ),
+      );
     }
     _listaDeTreinos = listaTemporaria;
 
-    // 3. Carregar Histórico
     final historicoData = await db.query('historico');
     _historico = {};
     for (var h in historicoData) {
@@ -129,45 +141,51 @@ class TreinoService with ChangeNotifier {
       _historico[dataLimpa] = foto;
     }
 
+    final pesoData = await db.query('historico_peso', orderBy: 'data DESC');
+    _historicoPeso = pesoData.map((p) => PesoModelo.fromMap(p)).toList();
+
     notifyListeners();
   }
-
-  // --- MÉTODOS DE AÇÃO (CRUD) ---
 
   Future<void> removerHistorico(DateTime dataSelecionada) async {
     final db = await DBHelper().database;
-    
-    // Converte a data selecionada para string YYYY-MM-DD para buscar no banco
-    // Usamos LIKE para garantir que pegue independente da hora exata salva
-    String dataBusca = dataSelecionada.toIso8601String().substring(0, 10); // Ex: "2023-10-25"
+
+    String dataBusca = dataSelecionada.toIso8601String().substring(0, 10);
 
     await db.delete(
-      'historico', 
-      where: "data LIKE ?", 
-      whereArgs: ['$dataBusca%'] // O % serve para ignorar o horário (HH:MM:SS)
+      'historico',
+      where: "data LIKE ?",
+      whereArgs: ['$dataBusca%'],
     );
 
-    // Remove do Map local para atualizar a tela instantaneamente
-    final dataLimpa = DateTime(dataSelecionada.year, dataSelecionada.month, dataSelecionada.day);
+    final dataLimpa = DateTime(
+      dataSelecionada.year,
+      dataSelecionada.month,
+      dataSelecionada.day,
+    );
     _historico.remove(dataLimpa);
-    
+
     notifyListeners();
   }
 
-  // 2. Adicionar treino manual (Data passada)
-  Future<void> adicionarHistoricoManual(DateTime dataSelecionada, String? fotoPath) async {
+  Future<void> adicionarHistoricoManual(
+    DateTime dataSelecionada,
+    String? fotoPath,
+  ) async {
     final db = await DBHelper().database;
-    
-    // Salva a data passada com um horário fixo (ex: 12:00)
+
     final dataComHora = dataSelecionada.add(const Duration(hours: 12));
 
     await db.insert('historico', {
       'data': dataComHora.toIso8601String(),
-      'foto_path': fotoPath
+      'foto_path': fotoPath,
     });
 
-    // Atualiza o Map local
-    final dataLimpa = DateTime(dataSelecionada.year, dataSelecionada.month, dataSelecionada.day);
+    final dataLimpa = DateTime(
+      dataSelecionada.year,
+      dataSelecionada.month,
+      dataSelecionada.day,
+    );
     _historico[dataLimpa] = fotoPath;
 
     notifyListeners();
@@ -197,14 +215,27 @@ class TreinoService with ChangeNotifier {
 
   Future<void> editarTreino(TreinoModelo treino) async {
     final db = await DBHelper().database;
-    await db.update('treinos', {'nome': treino.nome}, where: 'id = ?', whereArgs: [treino.id]);
+    await db.update(
+      'treinos',
+      {'nome': treino.nome},
+      where: 'id = ?',
+      whereArgs: [treino.id],
+    );
 
-    await db.delete('treino_dias', where: 'treino_id = ?', whereArgs: [treino.id]);
+    await db.delete(
+      'treino_dias',
+      where: 'treino_id = ?',
+      whereArgs: [treino.id],
+    );
     for (var dia in treino.diasDaSemana) {
       await db.insert('treino_dias', {'treino_id': treino.id, 'dia': dia});
     }
 
-    await db.delete('exercicios', where: 'treino_id = ?', whereArgs: [treino.id]);
+    await db.delete(
+      'exercicios',
+      where: 'treino_id = ?',
+      whereArgs: [treino.id],
+    );
     for (var ex in treino.exercicios) {
       await db.insert('exercicios', {
         'id': ex.id,
@@ -225,33 +256,75 @@ class TreinoService with ChangeNotifier {
     carregarDados();
   }
 
-  Future<void> marcarTreinoComoConcluido(TreinoModelo treino, Map<String, String> cargasNovas, String? fotoDoDia) async {
+  Future<void> marcarTreinoComoConcluido(
+    TreinoModelo treino,
+    Map<String, String> cargasNovas,
+    String? fotoDoDia,
+  ) async {
     final db = await DBHelper().database;
     final hoje = DateTime.now();
 
     await db.insert('historico', {
       'data': hoje.toIso8601String(),
-      'foto_path': fotoDoDia
+      'foto_path': fotoDoDia,
     });
 
     for (var ex in treino.exercicios) {
       if (cargasNovas.containsKey(ex.id)) {
+        final novaCargaStr = cargasNovas[ex.id]!;
+
         await db.update(
           'exercicios',
-          {'peso': cargasNovas[ex.id]},
+          {'peso': novaCargaStr},
           where: 'id = ?',
           whereArgs: [ex.id],
         );
+
+        double? cargaDouble;
+        try {
+          final cargaLimpa = novaCargaStr
+              .replaceAll('kg', '')
+              .replaceAll(' ', '')
+              .trim();
+          cargaDouble = double.parse(cargaLimpa);
+        } catch (e) {
+          final numeros = novaCargaStr.replaceAll(RegExp(r'[^0-9.]'), '');
+          if (numeros.isNotEmpty) {
+            cargaDouble = double.tryParse(numeros);
+          }
+        }
+
+        if (cargaDouble != null && cargaDouble > 0) {
+          await db.insert('historico_cargas', {
+            'exercicio_id': ex.id,
+            'exercicio_nome': ex.nome,
+            'data': hoje.toIso8601String(),
+            'carga': cargaDouble,
+            'treino_id': treino.id,
+          });
+        }
       }
     }
-    
+
     await db.delete('checkpoints_diarios');
+    await limparCargasTemporarias();
     carregarDados();
   }
 
-  Future<void> atualizarPerfil(String nome, int idade, double altura, double peso, String? fotoPath) async {
+  Future<void> atualizarPerfil(
+    String nome,
+    int idade,
+    double altura,
+    double peso,
+    String? fotoPath,
+  ) async {
     final db = await DBHelper().database;
-    
+
+    // Verifica se o peso mudou
+    final pesoAnterior = _usuario.peso;
+    final alturaAnterior = _usuario.altura;
+    final pesoMudou = pesoAnterior != peso || alturaAnterior != altura;
+
     await db.update(
       'usuario',
       {
@@ -272,17 +345,31 @@ class TreinoService with ChangeNotifier {
       peso: peso,
       fotoPath: fotoPath,
     );
-    
-    notifyListeners();
+
+    if (pesoMudou) {
+      final imc = peso / (altura * altura);
+      await db.insert('historico_peso', {
+        'data': DateTime.now().toIso8601String(),
+        'peso': peso,
+        'altura': altura,
+        'imc': imc,
+      });
+      await carregarDados();
+    } else {
+      notifyListeners();
+    }
   }
 
-  // --- CHECKPOINTS ---
   Future<void> alternarCheckpoint(String exercicioId, bool status) async {
     final db = await DBHelper().database;
     if (status) {
       await db.insert('checkpoints_diarios', {'exercicio_id': exercicioId});
     } else {
-      await db.delete('checkpoints_diarios', where: 'exercicio_id = ?', whereArgs: [exercicioId]);
+      await db.delete(
+        'checkpoints_diarios',
+        where: 'exercicio_id = ?',
+        whereArgs: [exercicioId],
+      );
     }
   }
 
@@ -290,5 +377,197 @@ class TreinoService with ChangeNotifier {
     final db = await DBHelper().database;
     final result = await db.query('checkpoints_diarios');
     return result.map((row) => row['exercicio_id'] as String).toList();
+  }
+
+  Future<void> salvarCargaTemporaria(String exercicioId, String carga) async {
+    final db = await DBHelper().database;
+    await db.insert('cargas_temporarias', {
+      'exercicio_id': exercicioId,
+      'carga': carga,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<Map<String, String>> carregarCargasTemporarias() async {
+    final db = await DBHelper().database;
+    final result = await db.query('cargas_temporarias');
+    final Map<String, String> cargas = {};
+    for (var row in result) {
+      cargas[row['exercicio_id'] as String] = row['carga'] as String;
+    }
+    return cargas;
+  }
+
+  Future<void> limparCargasTemporarias() async {
+    final db = await DBHelper().database;
+    await db.delete('cargas_temporarias');
+  }
+
+  Map<String, int> getTreinosPorMes() {
+    final agora = DateTime.now();
+    final Map<String, int> treinosPorMes = {};
+
+    for (int i = 2; i >= 0; i--) {
+      final mesesAtras = agora.month - i;
+      final ano = agora.year;
+      final mesAjustado = mesesAtras <= 0 ? mesesAtras + 12 : mesesAtras;
+      final anoAjustado = mesesAtras <= 0 ? ano - 1 : ano;
+      final mes = DateTime(anoAjustado, mesAjustado, 1);
+      final chave = '${mes.month.toString().padLeft(2, '0')}/${mes.year}';
+      treinosPorMes[chave] = 0;
+    }
+
+    for (var data in _historico.keys) {
+      final chave = '${data.month.toString().padLeft(2, '0')}/${data.year}';
+      if (treinosPorMes.containsKey(chave)) {
+        treinosPorMes[chave] = (treinosPorMes[chave] ?? 0) + 1;
+      }
+    }
+
+    return treinosPorMes;
+  }
+
+  int getTreinosMesAtual() {
+    final agora = DateTime.now();
+    int count = 0;
+
+    for (var data in _historico.keys) {
+      if (data.year == agora.year && data.month == agora.month) {
+        count++;
+      }
+    }
+
+    return count;
+  }
+
+  List<ExercicioModelo> getTodosExercicios() {
+    final List<ExercicioModelo> todosExercicios = [];
+    for (var treino in _listaDeTreinos) {
+      todosExercicios.addAll(treino.exercicios);
+    }
+    return todosExercicios;
+  }
+
+  int getTreinosUltimaSemana() {
+    final agora = DateTime.now();
+    final umaSemanaAtras = agora.subtract(const Duration(days: 7));
+    int count = 0;
+
+    for (var data in _historico.keys) {
+      if (data.isAfter(umaSemanaAtras) &&
+          data.isBefore(agora.add(const Duration(days: 1)))) {
+        count++;
+      }
+    }
+
+    return count;
+  }
+
+  Future<void> adicionarRegistroPeso(double peso, double altura) async {
+    final db = await DBHelper().database;
+    final imc = peso / (altura * altura);
+
+    await db.insert('historico_peso', {
+      'data': DateTime.now().toIso8601String(),
+      'peso': peso,
+      'altura': altura,
+      'imc': imc,
+    });
+
+    await carregarDados();
+  }
+
+  Future<void> editarRegistroPeso(
+    int id,
+    double peso,
+    double altura,
+    DateTime data,
+  ) async {
+    final db = await DBHelper().database;
+    final imc = peso / (altura * altura);
+
+    await db.update(
+      'historico_peso',
+      {
+        'data': data.toIso8601String(),
+        'peso': peso,
+        'altura': altura,
+        'imc': imc,
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+
+    await carregarDados();
+  }
+
+  Future<void> removerRegistroPeso(int id) async {
+    final db = await DBHelper().database;
+    await db.delete('historico_peso', where: 'id = ?', whereArgs: [id]);
+    await carregarDados();
+  }
+
+  Future<List<CargaModelo>> getHistoricoCargasExercicio(
+    String exercicioId,
+  ) async {
+    final db = await DBHelper().database;
+    final resultados = await db.query(
+      'historico_cargas',
+      where: 'exercicio_id = ?',
+      whereArgs: [exercicioId],
+      orderBy: 'data ASC',
+    );
+    return resultados.map((r) => CargaModelo.fromMap(r)).toList();
+  }
+
+  Future<List<String>> getExerciciosComHistorico() async {
+    final db = await DBHelper().database;
+    final resultados = await db.rawQuery(
+      'SELECT DISTINCT exercicio_id, exercicio_nome FROM historico_cargas ORDER BY exercicio_nome',
+    );
+    return resultados.map((r) => r['exercicio_id'] as String).toList();
+  }
+
+  Future<Map<String, dynamic>> getResumoCargasExercicio(
+    String exercicioId,
+  ) async {
+    final historico = await getHistoricoCargasExercicio(exercicioId);
+    if (historico.isEmpty) {
+      return {
+        'primeira': 0.0,
+        'ultima': 0.0,
+        'melhor': 0.0,
+        'tendencia': 0,
+        'percentualProgresso': 0.0,
+      };
+    }
+
+    final primeira = historico.first.carga;
+    final ultima = historico.last.carga;
+    final melhor = historico
+        .map((c) => c.carga)
+        .reduce((a, b) => a > b ? a : b);
+
+    int tendencia = 0;
+    if (historico.length >= 2) {
+      final penultima = historico[historico.length - 2].carga;
+      if (ultima > penultima) {
+        tendencia = 1;
+      } else if (ultima < penultima) {
+        tendencia = -1;
+      }
+    }
+
+    final percentualProgresso = primeira > 0
+        ? ((ultima - primeira) / primeira) * 100
+        : 0.0;
+
+    return {
+      'primeira': primeira,
+      'ultima': ultima,
+      'melhor': melhor,
+      'tendencia': tendencia,
+      'percentualProgresso': percentualProgresso,
+      'nome': historico.first.exercicioNome,
+    };
   }
 }
