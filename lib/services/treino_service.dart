@@ -108,6 +108,7 @@ class TreinoService with ChangeNotifier {
         'exercicios',
         where: 'treino_id = ?',
         whereArgs: [treinoId],
+        orderBy: 'rowid ASC',
       );
       List<ExercicioModelo> exercicios = exerciciosData.map((e) {
         return ExercicioModelo(
@@ -569,5 +570,78 @@ class TreinoService with ChangeNotifier {
       'percentualProgresso': percentualProgresso,
       'nome': historico.first.exercicioNome,
     };
+  }
+
+  Future<void> removerHistoricoCargasExercicio(String exercicioId) async {
+    final db = await DBHelper().database;
+    await db.delete(
+      'historico_cargas',
+      where: 'exercicio_id = ?',
+      whereArgs: [exercicioId],
+    );
+    carregarDados();
+  }
+
+  Future<void> editarExercicio(
+    String treinoId,
+    String exercicioId,
+    String nome,
+    String series,
+    String repeticoes,
+    String peso,
+    String? imageUrl,
+  ) async {
+    final db = await DBHelper().database;
+    await db.update(
+      'exercicios',
+      {
+        'nome': nome,
+        'series': series,
+        'repeticoes': repeticoes,
+        'peso': peso,
+        'image_url': imageUrl,
+      },
+      where: 'id = ?',
+      whereArgs: [exercicioId],
+    );
+    carregarDados();
+  }
+
+  Future<void> reordenarExercicios(String treinoId, List<String> novaOrdemIds) async {
+    final db = await DBHelper().database;
+
+    final exerciciosAtuais = await db.query(
+      'exercicios',
+      where: 'treino_id = ?',
+      whereArgs: [treinoId],
+    );
+    
+    final Map<String, Map<String, dynamic>> exerciciosMap = {};
+    for (var ex in exerciciosAtuais) {
+      exerciciosMap[ex['id'] as String] = Map<String, dynamic>.from(ex);
+    }
+    
+    await db.delete(
+      'exercicios',
+      where: 'treino_id = ?',
+      whereArgs: [treinoId],
+    );
+    
+    for (var id in novaOrdemIds) {
+      if (exerciciosMap.containsKey(id)) {
+        final ex = exerciciosMap[id]!;
+        await db.insert('exercicios', {
+          'id': ex['id'],
+          'treino_id': ex['treino_id'],
+          'nome': ex['nome'],
+          'series': ex['series'],
+          'repeticoes': ex['repeticoes'],
+          'peso': ex['peso'],
+          'image_url': ex['image_url'],
+        });
+      }
+    }
+    
+    carregarDados();
   }
 }

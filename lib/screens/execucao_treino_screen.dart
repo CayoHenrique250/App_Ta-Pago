@@ -30,6 +30,7 @@ class _ExecucaoTreinoScreenState extends State<ExecucaoTreinoScreen> {
     _carregarEstadoSalvo();
   }
 
+
   void _carregarEstadoSalvo() async {
     final service = Provider.of<TreinoService>(context, listen: false);
     final checks = await service.carregarCheckpointsDoDia();
@@ -251,6 +252,14 @@ class _ExecucaoTreinoScreenState extends State<ExecucaoTreinoScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final exerciciosOrdenados = List.from(widget.treino.exercicios);
+    exerciciosOrdenados.sort((a, b) {
+      final aDone = exerciciosFeitos[a.id] == true;
+      final bDone = exerciciosFeitos[b.id] == true;
+      if (aDone == bDone) return 0;
+      return aDone ? 1 : -1;
+    });
+
     return Scaffold(
       appBar: AppBar(title: Text(widget.treino.nome)),
       body: Column(
@@ -258,9 +267,9 @@ class _ExecucaoTreinoScreenState extends State<ExecucaoTreinoScreen> {
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
-              itemCount: widget.treino.exercicios.length,
+              itemCount: exerciciosOrdenados.length,
               itemBuilder: (ctx, index) {
-                final ex = widget.treino.exercicios[index];
+                final ex = exerciciosOrdenados[index];
                 final isDone = exerciciosFeitos[ex.id] == true;
 
                 return AnimatedContainer(
@@ -352,6 +361,7 @@ class _ExecucaoTreinoScreenState extends State<ExecucaoTreinoScreen> {
                                             ex.id,
                                             val ?? false,
                                           );
+                                          setState(() {});
                                         },
                                       ),
                                     ],

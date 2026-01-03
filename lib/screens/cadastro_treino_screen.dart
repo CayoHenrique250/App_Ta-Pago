@@ -111,6 +111,179 @@ class _CadastroTreinoScreenState extends State<CadastroTreinoScreen> {
     Navigator.of(context).pop();
   }
 
+  void _confirmarRemoverExercicio(int index) {
+    final ex = listaExercicios[index];
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Remover Exercício?"),
+        content: Text(
+          "Deseja remover o exercício \"${ex.nome}\" do treino?",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Cancelar"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                listaExercicios.removeAt(index);
+              });
+              Navigator.pop(ctx);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text("Remover"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _editarExercicio(int index) {
+    final ex = listaExercicios[index];
+    final nomeController = TextEditingController(text: ex.nome);
+    final seriesController = TextEditingController(text: ex.series);
+    final repsController = TextEditingController(text: ex.repeticoes);
+    final pesoController = TextEditingController(text: ex.peso);
+    File? imagemSelecionada = ex.imageUrl != null && ex.imageUrl!.isNotEmpty
+        ? File(ex.imageUrl!)
+        : null;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          Future<void> pegarImagemGaleria() async {
+            final picker = ImagePicker();
+            final pickedFile = await picker.pickImage(
+              source: ImageSource.gallery,
+            );
+
+            if (pickedFile != null) {
+              final directory = await getApplicationDocumentsDirectory();
+              final fileName = path.basename(pickedFile.path);
+              final savedImage = await File(pickedFile.path)
+                  .copy('${directory.path}/$fileName');
+
+              setDialogState(() {
+                imagemSelecionada = savedImage;
+              });
+            }
+          }
+
+          return AlertDialog(
+            title: const Text("Editar Exercício"),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GestureDetector(
+                    onTap: pegarImagemGaleria,
+                    child: Container(
+                      height: 120,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[800],
+                        borderRadius: BorderRadius.circular(10),
+                        image: imagemSelecionada != null
+                            ? DecorationImage(
+                                image: FileImage(imagemSelecionada!),
+                                fit: BoxFit.cover,
+                              )
+                            : null,
+                      ),
+                      child: imagemSelecionada == null
+                          ? Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                Icon(
+                                  Icons.add_photo_alternate,
+                                  size: 40,
+                                  color: Colors.white,
+                                ),
+                                Text(
+                                  "Toque para add Imagem",
+                                  style: TextStyle(color: Colors.white70),
+                                ),
+                              ],
+                            )
+                          : null,
+                    ),
+                  ),
+                  if (imagemSelecionada != null)
+                    TextButton(
+                      onPressed: () {
+                        setDialogState(() {
+                          imagemSelecionada = null;
+                        });
+                      },
+                      child: const Text('Remover Imagem'),
+                    ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: nomeController,
+                    decoration: const InputDecoration(labelText: 'Nome'),
+                  ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: seriesController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Séries',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextField(
+                          controller: repsController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(labelText: 'Reps'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  TextField(
+                    controller: pesoController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Carga (kg)'),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text("Cancelar"),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  if (nomeController.text.isNotEmpty) {
+                    setState(() {
+                      listaExercicios[index] = ExercicioModelo(
+                        id: ex.id,
+                        nome: nomeController.text,
+                        series: seriesController.text,
+                        repeticoes: repsController.text,
+                        peso: pesoController.text,
+                        imageUrl: imagemSelecionada?.path,
+                      );
+                    });
+                    Navigator.of(ctx).pop();
+                  }
+                },
+                child: const Text("Salvar"),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   void mostrarDialogoAdicionarExercicio() {
     final nomeExController = TextEditingController();
     final seriesController = TextEditingController();
@@ -305,11 +478,21 @@ class _CadastroTreinoScreenState extends State<CadastroTreinoScreen> {
               ],
             ),
             Expanded(
-              child: ListView.builder(
+              child: ReorderableListView.builder(
                 itemCount: listaExercicios.length,
+                onReorder: (oldIndex, newIndex) {
+                  if (newIndex > oldIndex) {
+                    newIndex -= 1;
+                  }
+                  setState(() {
+                    final item = listaExercicios.removeAt(oldIndex);
+                    listaExercicios.insert(newIndex, item);
+                  });
+                },
                 itemBuilder: (ctx, index) {
                   final ex = listaExercicios[index];
                   return Card(
+                    key: ValueKey(ex.id),
                     child: ListTile(
                       leading: Container(
                         width: 50,
@@ -339,10 +522,18 @@ class _CadastroTreinoScreenState extends State<CadastroTreinoScreen> {
                       subtitle: Text(
                         "${ex.series}x${ex.repeticoes} - ${ex.peso}kg",
                       ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () =>
-                            setState(() => listaExercicios.removeAt(index)),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit, color: Colors.blue),
+                            onPressed: () => _editarExercicio(index),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () => _confirmarRemoverExercicio(index),
+                          ),
+                        ],
                       ),
                     ),
                   );

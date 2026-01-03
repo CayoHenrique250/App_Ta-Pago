@@ -1119,22 +1119,47 @@ class _MetricasScreenState extends State<MetricasScreen> {
                 ),
               ),
               if (isExpandido)
-                FutureBuilder<List<CargaModelo>>(
-                  future: treinoService.getHistoricoCargasExercicio(
-                    exercicioId,
-                  ),
-                  builder: (context, historicoSnapshot) {
-                    if (!historicoSnapshot.hasData ||
-                        historicoSnapshot.data!.isEmpty) {
-                      return const SizedBox.shrink();
-                    }
+                Column(
+                  children: [
+                    FutureBuilder<List<CargaModelo>>(
+                      future: treinoService.getHistoricoCargasExercicio(
+                        exercicioId,
+                      ),
+                      builder: (context, historicoSnapshot) {
+                        if (!historicoSnapshot.hasData ||
+                            historicoSnapshot.data!.isEmpty) {
+                          return const SizedBox.shrink();
+                        }
 
-                    final historico = historicoSnapshot.data!;
-                    return Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: _buildGraficoCarga(context, historico),
-                    );
-                  },
+                        final historico = historicoSnapshot.data!;
+                        return Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: _buildGraficoCarga(context, historico),
+                        );
+                      },
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton.icon(
+                            onPressed: () => _removerHistoricoCarga(
+                              context,
+                              exercicioId,
+                              nome,
+                              treinoService,
+                            ),
+                            icon: const Icon(Icons.delete, color: Colors.red, size: 18),
+                            label: const Text(
+                              'Remover Histórico',
+                              style: TextStyle(color: Colors.red, fontSize: 12),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
             ],
           ),
@@ -1162,6 +1187,48 @@ class _MetricasScreenState extends State<MetricasScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  void _removerHistoricoCarga(
+    BuildContext context,
+    String exercicioId,
+    String nomeExercicio,
+    TreinoService treinoService,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E38),
+        title: const Text(
+          'Remover Histórico',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          'Deseja remover todo o histórico de cargas do exercício "$nomeExercicio"?',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              treinoService.removerHistoricoCargasExercicio(exercicioId);
+              Navigator.pop(ctx);
+              setState(() {
+                _exerciciosExpandidos[exercicioId] = false;
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Histórico removido!')),
+              );
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Remover'),
+          ),
+        ],
+      ),
     );
   }
 
