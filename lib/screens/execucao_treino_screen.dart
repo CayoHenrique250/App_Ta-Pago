@@ -273,7 +273,8 @@ class _ExecucaoTreinoScreenState extends State<ExecucaoTreinoScreen> {
                 final isDone = exerciciosFeitos[ex.id] == true;
 
                 return AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
+                  duration: const Duration(milliseconds: 600),
+                  curve: Curves.easeInOutCubic,
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
                     // ignore: deprecated_member_use
@@ -361,7 +362,6 @@ class _ExecucaoTreinoScreenState extends State<ExecucaoTreinoScreen> {
                                             ex.id,
                                             val ?? false,
                                           );
-                                          setState(() {});
                                         },
                                       ),
                                     ],
