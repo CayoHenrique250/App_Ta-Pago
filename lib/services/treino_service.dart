@@ -5,7 +5,8 @@ import '../models/exercicio_model.dart';
 import '../models/usuario_model.dart';
 
 class TreinoService with ChangeNotifier {
-  late UsuarioModelo _usuario;
+  // Inicializa com valor padrão para evitar LateInitializationError
+  UsuarioModelo _usuario = UsuarioModelo(nome: 'Atleta', idade: 25, altura: 1.75, peso: 70.0);
 
   List<TreinoModelo> _listaDeTreinos = [];
   Map<DateTime, String?> _historico = {};

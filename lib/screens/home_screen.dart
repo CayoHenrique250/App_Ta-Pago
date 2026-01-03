@@ -68,6 +68,30 @@ class HomeScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // --- TÍTULO DO APP ---
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.fitness_center,
+                      color: Color(0xFFFFD700),
+                      size: 28,
+                    ),
+                    const SizedBox(width: 10),
+                    const Text(
+                      'TÁ PAGO!',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 3,
+                        color: Color(0xFFFFD700),
+                      ),
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 20),
+                
                 // --- HEADER COM FOTO DE PERFIL CORRIGIDA ---
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,

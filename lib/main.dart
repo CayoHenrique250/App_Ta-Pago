@@ -5,6 +5,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'screens/home_screen.dart';
 import 'screens/meus_treinos_screen.dart';
 import 'screens/historico_screen.dart';
+import 'screens/splash_screen.dart';
 import 'services/treino_service.dart';
 
 void main() async {
@@ -97,7 +98,11 @@ class MeuApp extends StatelessWidget {
         useMaterial3: true,
       ),
       
-      home: const MainScreen(),
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const SplashScreen(),
+        '/main': (context) => const MainScreen(),
+      },
     );
   }
 }
