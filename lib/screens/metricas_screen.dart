@@ -1,9 +1,11 @@
 // ignore_for_file: deprecated_member_use
 
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/treino_service.dart';
 import '../models/usuario_model.dart';
 import '../models/peso_model.dart';
@@ -18,6 +20,56 @@ class MetricasScreen extends StatefulWidget {
 
 class _MetricasScreenState extends State<MetricasScreen> {
   final Map<String, bool> _exerciciosExpandidos = {};
+  int _consumoAguaSemanal = 0;
+  Map<DateTime, int> _consumoDiarioSemanal = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarConsumoAguaSemanal();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _carregarConsumoAguaSemanal();
+  }
+
+  Future<void> _carregarConsumoAguaSemanal() async {
+    final dados = await _calcularConsumoAguaSemanal();
+    setState(() {
+      _consumoAguaSemanal = dados['total'] as int;
+      _consumoDiarioSemanal = dados['diario'] as Map<DateTime, int>;
+    });
+  }
+
+  Future<Map<String, dynamic>> _calcularConsumoAguaSemanal() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final historicoJson = prefs.getString('historico_agua') ?? '{}';
+      final Map<String, dynamic> historico = json.decode(historicoJson);
+
+      final hoje = DateTime.now();
+      final inicioSemana = hoje.subtract(Duration(days: hoje.weekday - 1));
+
+      int total = 0;
+      final Map<DateTime, int> diario = {};
+
+      for (int i = 0; i < 7; i++) {
+        final data = inicioSemana.add(Duration(days: i));
+        final dataStr = DateFormat('yyyy-MM-dd').format(data);
+        final consumoDia = historico.containsKey(dataStr)
+            ? (historico[dataStr] as num).toInt()
+            : 0;
+        diario[data] = consumoDia;
+        total += consumoDia;
+      }
+
+      return {'total': total, 'diario': diario};
+    } catch (e) {
+      return {'total': 0, 'diario': <DateTime, int>{}};
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +81,6 @@ class _MetricasScreenState extends State<MetricasScreen> {
             final historicoPeso = treinoService.historicoPeso;
             final treinosPorMes = treinoService.getTreinosPorMes();
             final treinosTotais = treinoService.treinosTotais;
-            final treinosMesAtual = treinoService.getTreinosMesAtual();
             final todosExercicios = treinoService.getTodosExercicios();
             final rankAtual = treinoService.rankAtual;
 
@@ -43,7 +94,6 @@ class _MetricasScreenState extends State<MetricasScreen> {
               ),
               child: Column(
                 children: [
-                  // Header
                   Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Row(
@@ -89,10 +139,12 @@ class _MetricasScreenState extends State<MetricasScreen> {
                           _buildCardEstatisticas(
                             context,
                             treinosTotais,
-                            treinosMesAtual,
                             todosExercicios.length,
                             rankAtual,
                           ),
+                          const SizedBox(height: 16),
+
+                          _buildCardGraficoConsumoAguaSemanal(context),
                           const SizedBox(height: 16),
                         ],
                       ),
@@ -816,10 +868,10 @@ class _MetricasScreenState extends State<MetricasScreen> {
   Widget _buildCardEstatisticas(
     BuildContext context,
     int treinosTotais,
-    int treinosMesAtual,
     int totalExercicios,
     String rankAtual,
   ) {
+    final consumoLitros = (_consumoAguaSemanal / 1000);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -857,9 +909,9 @@ class _MetricasScreenState extends State<MetricasScreen> {
               ),
               _buildStatItem(
                 context,
-                'Treinos (Mês)',
-                treinosMesAtual.toString(),
-                Icons.calendar_month,
+                'Água (Semanal)',
+                consumoLitros.toStringAsFixed(1),
+                Icons.local_drink,
               ),
               _buildStatItem(
                 context,
@@ -929,6 +981,167 @@ class _MetricasScreenState extends State<MetricasScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildCardGraficoConsumoAguaSemanal(BuildContext context) {
+    final dias = _consumoDiarioSemanal.keys.toList()..sort();
+    final valores = dias
+        .map((dia) => (_consumoDiarioSemanal[dia] ?? 0) / 1000.0)
+        .toList();
+    final labels = dias.map((dia) {
+      final diaSemana = DateFormat('EEE', 'pt_BR').format(dia);
+      return diaSemana.substring(0, 3).toUpperCase();
+    }).toList();
+
+    final maxY =
+        valores.isNotEmpty && valores.reduce((a, b) => a > b ? a : b) > 0
+        ? (valores.reduce((a, b) => a > b ? a : b) * 1.2).ceil().toDouble()
+        : 3.0;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E38),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.blueAccent.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.local_drink, color: Colors.blueAccent, size: 24),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Consumo de Água Semanal',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 200,
+            child: valores.isNotEmpty && valores.any((v) => v > 0)
+                ? BarChart(
+                    BarChartData(
+                      gridData: FlGridData(
+                        show: true,
+                        drawVerticalLine: false,
+                        horizontalInterval: maxY > 3 ? (maxY / 3) : 1,
+                        getDrawingHorizontalLine: (value) {
+                          return FlLine(
+                            color: Colors.grey[800]!,
+                            strokeWidth: 1,
+                          );
+                        },
+                      ),
+                      titlesData: FlTitlesData(
+                        show: true,
+                        rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            getTitlesWidget: (value, meta) {
+                              final index = value.toInt();
+                              if (index >= 0 && index < labels.length) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(top: 8.0),
+                                  child: Text(
+                                    labels[index],
+                                    style: const TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                );
+                              }
+                              return const Text('');
+                            },
+                            reservedSize: 30,
+                          ),
+                        ),
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            interval: maxY > 3 ? (maxY / 3) : 1,
+                            getTitlesWidget: (value, meta) {
+                              return Text(
+                                value.toStringAsFixed(1),
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 9,
+                                ),
+                              );
+                            },
+                            reservedSize: 35,
+                          ),
+                        ),
+                      ),
+                      borderData: FlBorderData(
+                        show: true,
+                        border: Border.all(color: Colors.grey[800]!),
+                      ),
+                      minY: 0,
+                      maxY: maxY,
+                      barGroups: List.generate(
+                        valores.length,
+                        (index) => BarChartGroupData(
+                          x: index,
+                          barRods: [
+                            BarChartRodData(
+                              toY: valores[index],
+                              color: Colors.blueAccent,
+                              width: 20,
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(4),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      barTouchData: BarTouchData(
+                        touchTooltipData: BarTouchTooltipData(
+                          getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                            return BarTooltipItem(
+                              '${valores[groupIndex].toStringAsFixed(1)} L\n',
+                              TextStyle(
+                                color: Colors.blueAccent,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              children: [
+                                TextSpan(
+                                  text: DateFormat(
+                                    'dd/MM',
+                                  ).format(dias[groupIndex]),
+                                  style: TextStyle(
+                                    color: Colors.grey[400],
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  )
+                : Center(
+                    child: Text(
+                      'Ainda não há dados de consumo',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                  ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1139,7 +1352,10 @@ class _MetricasScreenState extends State<MetricasScreen> {
                       },
                     ),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
@@ -1150,7 +1366,11 @@ class _MetricasScreenState extends State<MetricasScreen> {
                               nome,
                               treinoService,
                             ),
-                            icon: const Icon(Icons.delete, color: Colors.red, size: 18),
+                            icon: const Icon(
+                              Icons.delete,
+                              color: Colors.red,
+                              size: 18,
+                            ),
                             label: const Text(
                               'Remover Histórico',
                               style: TextStyle(color: Colors.red, fontSize: 12),
