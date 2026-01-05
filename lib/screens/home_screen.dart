@@ -3,6 +3,7 @@
 import 'dart:io';
 import 'dart:math';
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -27,6 +28,10 @@ class _HomeScreenState extends State<HomeScreen>
 
   late AnimationController _waveController;
 
+  Timer? _stopwatchTimer;
+  Duration _elapsedTime = Duration.zero;
+  bool _isRunning = false;
+
   final Color _goldColor = const Color(0xFFFFD700);
 
   @override
@@ -43,6 +48,7 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void dispose() {
     _waveController.dispose();
+    _stopwatchTimer?.cancel();
     super.dispose();
   }
 
@@ -617,6 +623,8 @@ class _HomeScreenState extends State<HomeScreen>
 
                         const SizedBox(height: 30),
                         _buildCardAgua(context),
+                        const SizedBox(height: 30),
+                        _buildCardCardio(context),
                         const SizedBox(height: 80),
                       ],
                     ),
@@ -749,6 +757,145 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                     ),
                   ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _startStopwatch() {
+    if (_isRunning) {
+      _stopwatchTimer?.cancel();
+      setState(() {
+        _isRunning = false;
+      });
+    } else {
+      _stopwatchTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+        setState(() {
+          _elapsedTime = _elapsedTime + const Duration(milliseconds: 100);
+        });
+      });
+      setState(() {
+        _isRunning = true;
+      });
+    }
+  }
+
+  void _resetStopwatch() {
+    _stopwatchTimer?.cancel();
+    setState(() {
+      _elapsedTime = Duration.zero;
+      _isRunning = false;
+    });
+  }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    final seconds = duration.inSeconds.remainder(60);
+    final milliseconds = (duration.inMilliseconds.remainder(1000) / 100).floor();
+
+    if (hours > 0) {
+      return '${twoDigits(hours)}:${twoDigits(minutes)}:${twoDigits(seconds)}';
+    }
+    return '${twoDigits(minutes)}:${twoDigits(seconds)}.${milliseconds}';
+  }
+
+  Widget _buildCardCardio(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(25),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E38),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: Colors.redAccent.withOpacity(0.3), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.redAccent.withOpacity(0.1),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                "CRONÔMETRO",
+                style: TextStyle(
+                  color: Colors.redAccent,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1,
+                ),
+              ),
+              const Icon(
+                Icons.timer,
+                color: Colors.redAccent,
+                size: 20,
+              ),
+            ],
+          ),
+          const SizedBox(height: 25),
+          Text(
+            _formatDuration(_elapsedTime),
+            style: const TextStyle(
+              fontSize: 48,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              fontFeatures: [FontFeature.tabularFigures()],
+            ),
+          ),
+          const SizedBox(height: 30),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _resetStopwatch,
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.grey),
+                    foregroundColor: Colors.grey,
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                  ),
+                  icon: const Icon(Icons.refresh, size: 20),
+                  label: const Text("Resetar"),
+                ),
+              ),
+              const SizedBox(width: 15),
+              Expanded(
+                flex: 2,
+                child: ElevatedButton.icon(
+                  onPressed: _startStopwatch,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _isRunning
+                        ? Colors.redAccent.withOpacity(0.15)
+                        : Colors.redAccent,
+                    foregroundColor: _isRunning ? Colors.redAccent : Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    elevation: _isRunning ? 0 : 5,
+                    side: _isRunning
+                        ? const BorderSide(color: Colors.redAccent)
+                        : null,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                  ),
+                  icon: Icon(_isRunning ? Icons.pause : Icons.play_arrow, size: 24),
+                  label: Text(
+                    _isRunning ? "Pausar" : "Iniciar",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
                 ),
               ),
             ],
